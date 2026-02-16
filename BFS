@@ -1,0 +1,42 @@
+BFS
+format short 
+clear all
+clc
+
+A=[2 3 -1 4 ; 1 -2 6 -7];
+C=[2 3 4 7];
+B=[8 ;-3];
+
+n=size(A,2);
+m=size(A,1);
+sol=[];
+n_v=nchoosek(n,m);
+t=nchoosek(1:n,m);
+
+if n>=m
+    for i=1:n_v
+        y=zeros(n,1);
+        x=A(:,t(i,:))\B;
+
+        if all(x>0 &x~=inf & x~=-inf)
+            y(t(i,:))=x;
+            sol=[sol y];
+        end
+    end
+else
+    error('Equations n is greater than m')
+end
+
+Z=C*sol;
+[zmax,zind]=max(Z);
+BFS=sol(:,zind);
+opval=[BFS' zmax];
+optimal_BFS=array2table(opval);
+optimal_BFS.Properties.VariableNames(1:size(optimal_BFS,2))={'x_1','x_2','x_3','x_4','Z_max_val'};
+
+syms x1 x2 x3 x4
+var=[x1 x2 x3 x4]
+z_exp=C*var.';
+disp('Objective function');
+disp(z_exp);
+disp(optimal_BFS);
