@@ -1,0 +1,64 @@
+%% least cost methods
+%% sabse pehle matrix banao balanced check karo aur phir balanced karo 
+%% then ek copy banao size nikalo aur phir chalne do basic code jo tha
+
+format short
+clear all 
+clc
+
+cost = [11 20 7 8 ; 21 16 10 12 ; 8 12 18 9];
+A = [50 40 70];
+B = [30 25 35 40];
+
+%% balanced check karo sabse pehle 
+if sum(A)==sum(B)
+    fprintf('balanced one');
+
+else 
+    if sum(A)<sum(B)
+        cost(end+1,:)=zeros(1,size(A,2));
+        A(end+1)=sum(B)-sum(A);
+
+    elseif sum(B)<sum(A)
+            cost(:,end+1)=zeros(size(cost,1),1);
+            B(end+1)=sum(A)-sum(B);
+    end
+end
+
+%% ab basic define karna pade ga 
+%% like ek to copy banani hai aur phir values insert karni hai 
+
+icost = cost;
+[m n]=size(cost);
+x = zeros(size(cost));
+BFS=m+n-1;
+
+for i = 1:size(cost,1)
+    for j = 1:size(cost,2)
+        hh = min(cost(:));
+        [row , col]=find(hh==cost);
+        x11 = min(A(row),B(col));
+        %% ab max dekhge ge 
+        [val , index]=max(x11);
+        ii = row(index);
+        jj = col(index);
+        y11 = min(A(ii),B(jj));
+        x(ii,jj)=y11;
+        A(ii)=A(ii)-y11;
+        B(jj)=B(jj)-y11;
+        cost(ii,jj)=Inf;
+    end
+end
+fprintf('Initial BFS \n');
+ib = array2table(x);
+disp(ib);
+
+totalbfs = length(nonzeros(x));
+if totalbfs == BFS;
+    fprintf('non degenerate elements')
+else
+    fprintf('degenerate elements')
+end
+
+initialcost = sum(sum(icost.*x));
+fprintf('Cost is : %d\n',initialcost);
