@@ -1,0 +1,37 @@
+%% code of steepest decent methods
+
+format short
+clear all
+clc
+
+syms x1 x2;
+
+f1 = x1-x2+2*x1^2+2*x1*x2+x2^2;
+fx = inline(f1);
+fobj = @(x) fx(x(:,1),x(:,2));
+
+g1 = gradient(f1);
+gx = inline(g1);
+gobj = @(x) gx(x(:,1),x(:,2));
+
+h1 = hessian(f1);
+hx = inline(h1);
+
+x = [];
+x0 = [1 1];
+tol = 1e-3;
+maxiter = 4;
+iter = 0;
+
+while norm(gobj(x0))>tol && iter<maxiter
+    x = [x;x0];
+    S = -gobj(x0);
+    H = hx(x0);
+    lamda = S'*S./(S'*H*S);
+    xnew = x0+lamda*S';
+    x0 = xnew;
+    iter = iter+1;
+end
+
+fprintf('optimal function value is [%f %f]\n',x0(1),x0(2));
+fprintf('optimal function value is %f\n',fobj(x0));
