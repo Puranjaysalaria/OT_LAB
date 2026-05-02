@@ -1,64 +1,67 @@
-%% least cost methods
-%% sabse pehle matrix banao balanced check karo aur phir balanced karo 
-%% then ek copy banao size nikalo aur phir chalne do basic code jo tha
-
-format short
-clear all 
 clc
+clear all
 
-cost = [11 20 7 8 ; 21 16 10 12 ; 8 12 18 9];
-A = [50 40 70];
-B = [30 25 35 40];
+demand = [30 25 35 40];
+supply = [50 40 70];
 
-%% balanced check karo sabse pehle 
-if sum(A)==sum(B)
-    fprintf('balanced one');
+cost = [11 20 7 8;
+        21 16 10 12;
+        8 12 18 9];
 
-else 
-    if sum(A)<sum(B)
-        cost(end+1,:)=zeros(1,size(A,2));
-        A(end+1)=sum(B)-sum(A);
-
-    elseif sum(B)<sum(A)
-            cost(:,end+1)=zeros(size(cost,1),1);
-            B(end+1)=sum(A)-sum(B);
+if sum(supply) == sum(demand)
+    fprintf("Problem is balanced")
+else
+    fprintf("Problem is unbalanced")
+    if sum(supply) < sum(demand)
+        cost(end+1,:) = zeros(1,length(demand));
+        supply(end+1) = sum(demand) - sum(supply);
+    elseif sum(supply) > sum(demand)
+        cost(:,end+1) = zeros(length(supply),1);
+        demand(end+1) = sum(supply) - sum(demand);
     end
 end
 
-%% ab basic define karna pade ga 
-%% like ek to copy banani hai aur phir values insert karni hai 
+orig_cost = cost;
 
-icost = cost;
-[m n]=size(cost);
-x = zeros(size(cost));
-BFS=m+n-1;
+alloc = zeros(size(cost));
+
+[m,n] = size(cost);
+required = m + n - 1;
 
 for i = 1:size(cost,1)
     for j = 1:size(cost,2)
-        hh = min(cost(:));
-        [row , col]=find(hh==cost);
-        x11 = min(A(row),B(col));
-        %% ab max dekhge ge 
-        [val , index]=max(x11);
-        ii = row(index);
-        jj = col(index);
-        y11 = min(A(ii),B(jj));
-        x(ii,jj)=y11;
-        A(ii)=A(ii)-y11;
-        B(jj)=B(jj)-y11;
-        cost(ii,jj)=Inf;
+        
+        min_cost = min(cost(:));
+        [row, col] = find(min_cost == cost);
+        
+        possible_alloc = min(supply(row), demand(col));
+        [~, index] = max(possible_alloc);
+        
+        r = row(index);
+        c = col(index);
+        
+        value = min(supply(r), demand(c));
+        
+        alloc(r,c) = value;
+        
+        supply(r) = supply(r) - value;
+        demand(c) = demand(c) - value;
+        
+        cost(r,c) = inf;
     end
 end
-fprintf('Initial BFS \n');
-ib = array2table(x);
-disp(ib);
 
-totalbfs = length(nonzeros(x));
-if totalbfs == BFS;
-    fprintf('non degenerate elements')
+fprintf("BFS=\n");
+table_BFS = array2table(alloc);
+disp(table_BFS)
+
+filled = length(nonzeros(alloc));
+
+if filled == required
+    fprintf("initial BFS is Non Degenerate\n");
 else
-    fprintf('degenerate elements')
-end
+    fprintf("initial BFS is Degenerate\n")
+end 
 
-initialcost = sum(sum(icost.*x));
-fprintf('Cost is : %d\n',initialcost);
+totalCost = sum(sum(alloc .* orig_cost));
+fprintf("Total transportation cost: %.2f\n", totalCost);
