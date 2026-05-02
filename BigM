@@ -1,107 +1,95 @@
-%% BIG M METHOD (COMBINED FROM PHOTOS)
-
 clc
 clear all
-format short
+format rational
 
-%% INPUT PHASE
-%% EXAMPLE 1
+M = 1000;   % Big M value
 
-Variables = {'x_1','x_2','s_2','s_3','A_1','A_2','Sol'};
+% Objective function coefficients
+c = [2 1 0 0 -M];   
 
-M = 1000;
+% Constraint matrix
+A = [4 3 -1 0 1;
+     1 2  0 1 0];
 
-Cost = [-2 -1 0 0 -M -M 0];
+% RHS values
+b = [6; 3];
 
-A = [3 1 0 0 1 0 3;
-     4 3 -1 0 0 1 6;
-     1 2 0 1 0 0 3];
+[m, n] = size(A);
 
-s = eye(size(A,1));
+% Initial Basic Variables (Artificial + Slack)
+bv = [5 4];   
 
-%% FINDING STARTING BFS
-BV = [];
+% Form initial tableau
+table = [A b];
 
-for j = 1:size(s,2)
-    for i = 1:size(A,2)
-        if A(:,i) == s(:,j)
-            BV = [BV i];
+% Solution vector
+X = zeros(n,1);
+
+for iter = 1:100
+    
+    fprintf("\nIteration = %d\n", iter);
+    
+    % Step 1: Get basic cost and solution
+    cb = c(bv);
+    xb = table(:, end);
+    
+    % Step 2: Calculate Z
+    Z = cb * xb;
+    
+    % Step 3: Calculate Zj - Cj
+    ZC = cb * table(:,1:n) - c;
+    
+    % Display
+    disp("Zj - Cj = "), disp(ZC)
+    
+    % Step 4: Check optimality
+    if all(ZC >= 0)
+        disp("Optimal Solution Found")
+        X(bv) = xb;
+        disp("Solution X = "), disp(X)
+        fprintf("Optimal Value Z = %f\n", Z)
+        break
+    end
+    
+    % Step 5: Find Entering Variable
+    [min_value, EV] = min(ZC);
+    fprintf("Entering Variable = %d\n", EV)
+    
+    % Step 6: Check Unbounded
+    if all(table(:,EV) <= 0)
+        disp("Unbounded Solution")
+        break
+    end
+    
+    % Step 7: Ratio Test
+    ratio = zeros(m,1);
+    for i = 1:m
+        if table(i,EV) > 0
+            ratio(i) = xb(i) / table(i,EV);
+        else
+            ratio(i) = inf;
         end
     end
-end
-
-%% Compute Zj - Cj
-ZjCj = Cost(BV)*A - Cost;
-
-%% Print Initial Table
-ZCj = [ZjCj; A];
-
-SimpTable = array2table(ZCj);
-SimpTable.Properties.VariableNames(1:size(ZCj,2)) = Variables;
-
-disp('Initial Table:')
-disp(SimpTable)
-
-%% SIMPLEX ITERATION START
-RUN = true;
-
-while RUN
-
-    %% FINDING ENTERING VARIABLE
-    ZC = ZjCj(:,1:end-1);
-
-    if any(ZC < 0)
-
-        fprintf('The Current BFS is NOT Optimal \n');
-
-        [Entval,pvt_col] = min(ZC);
-        fprintf('Entering Column = %d\n',pvt_col);
-
-        %% FINDING LEAVING VARIABLE
-        sol = A(:,end);
-        Column = A(:,pvt_col);
-
-        Har = find(Column > 0);
-
-        ratio = inf*ones(1,length(sol));
-        ratio(Har) = sol(Har)./Column(Har);
-
-        [minR,pvt_row] = min(ratio);
-        fprintf('Leaving Row = %d\n',pvt_row);
-
-        %% UPDATE BV
-        BV(pvt_row) = pvt_col;
-
-        %% UPDATE TABLE
-        B = A(:,BV);
-        A = inv(B)*A;
-
-        ZjCj = Cost(BV)*A - Cost;
-
-        %% PRINT TABLE
-        ZCj = [ZjCj;A];
-
-        TABLE = array2table(ZCj);
-        TABLE.Properties.VariableNames(1:size(ZCj,2)) = Variables;
-
-        disp(TABLE)
-
-    else
-        RUN = false;
-        fprintf('CURRENT BFS IS OPTIMAL \n');
+    
+    disp("Ratios = "), disp(ratio)
+    
+    % Step 8: Leaving Variable
+    [min_ratio, LV] = min(ratio);
+    fprintf("Leaving Variable Row = %d\n", LV)
+    
+    % Update basis
+    bv(LV) = EV;
+    
+    % Step 9: Pivot Operation
+    pivot = table(LV, EV);
+    table(LV,:) = table(LV,:) / pivot;
+    
+    for i = 1:m
+        if i ~= LV
+            table(i,:) = table(i,:) - table(i,EV) * table(LV,:);
+        end
     end
-
+    
+    disp("Updated Tableau = ")
+    disp(table)
 end
-
-%% FINAL OPTIMAL SOLUTION
-FINAL_BFS = zeros(1,size(A,2));
-
-FINAL_BFS(BV) = A(:,end);
-
-FINAL_BFS(end) = sum(FINAL_BFS.*Cost);
-
-OptimalBFS = array2table(FINAL_BFS);
-OptimalBFS.Properties.VariableNames(1:size(OptimalBFS,2)) = Variables;
-
-disp('Final Optimal Solution:')
-disp(OptimalBFS)
