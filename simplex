@@ -1,111 +1,107 @@
-%% SIMPLEX METHOD (FULL COMBINED CODE)
-%% Phase - 1 : Information Phase
-
 clc
 clear all
 format short
 
-%% INPUT PHASE
-Variables = {'x_1','x_2','x_3','s_1','s_2','s_3','Sol'};
+% Objective function
+c = [-1 3 -2];
 
-Cost = [-1 3 -2 0 0 0 0];
+% Constraint matrix
+A1 = [3 -1 2;
+     -2 4 0;
+     -4 3 8];
 
-Info = [ 3 -1  2;
-        -2  4  0;
-        -4  3  8];
+b = [7; 12; 10];
 
-b = [7;12;10];
+% Add slack variables
+s = eye(size(A1,1));
+A = [A1 s b];
 
-s = eye(size(Info,1));
+[m, n] = size(A1);
 
-A = [Info s b];
+% Cost vector (including slack variables)
+cost = zeros(1, size(A,2));
+cost(1:n) = c;
 
-%% FINDING STARTING BFS
-BV = [];
+% Basic variables (slack variables initially)
+bv = n+1 : size(A,2)-1;
 
-for j = 1:size(s,2)
-    for i = 1:size(A,2)
-        if A(:,i) == s(:,j)
-            BV = [BV i];
+% Initial Zj - Cj
+zjcj = cost(bv) * A - cost;
+
+run = true;
+
+while run
+    
+    % Create and display simplex table
+    table = [zjcj; A];
+    SimpTable = array2table(table);
+    SimpTable.Properties.VariableNames = {'x1','x2','x3','s1','s2','s3','Sol'};
+    disp(SimpTable)
+    
+    % Check optimality
+    if any(zjcj < 0)
+        
+        % Entering variable
+        zc = zjcj(1:end-1);
+        [~, ev] = min(zc);
+        
+        % Pivot column
+        col = A(:, ev);
+        sol = A(:, end);
+        
+        % Unbounded check
+        if all(col <= 0)
+            error('Unbounded solution')
         end
-    end
-end
-
-%% Compute Value of Table
-B = A(:,BV);
-A = inv(B)*A;
-
-ZjCj = Cost(BV)*A - Cost;
-
-%% Print Initial Table
-ZCj = [ZjCj;A];
-
-SimpTable = array2table(ZCj);
-SimpTable.Properties.VariableNames(1:size(ZCj,2)) = Variables;
-
-disp('Initial Simplex Table:')
-disp(SimpTable)
-
-%% SIMPLEX METHOD START
-RUN = true;
-
-while RUN
-
-    ZC = ZjCj(:,1:end-1);
-
-    if any(ZC < 0)
-
-        fprintf('The Current BFS is NOT Optimal \n');
-
-        %% FINDING ENTERING VARIABLE
-        [Entval,pvt_col] = min(ZC);
-        fprintf('Entering Column = %d\n',pvt_col);
-
-        %% FINDING LEAVING VARIABLE
-        sol = A(:,end);
-        Column = A(:,pvt_col);
-
-        Har = find(Column > 0);
-
-        ratio = inf*ones(1,length(sol));
-        ratio(Har) = sol(Har)./Column(Har);
-
-        [minR,pvt_row] = min(ratio);
-        fprintf('Leaving Row = %d\n',pvt_row);
-
-        %% UPDATE THE BV
-        BV(pvt_row) = pvt_col;
-
-        %% UPDATE THE TABLE FOR NEXT ITERATION
-        B = A(:,BV);
-        A = inv(B)*A;
-
-        ZjCj = Cost(BV)*A - Cost;
-
-        %% Printing purpose
-        ZCj = [ZjCj;A];
-
-        TABLE = array2table(ZCj);
-        TABLE.Properties.VariableNames(1:size(ZCj,2)) = Variables;
-
-        disp(TABLE)
-
+        
+        % Ratio test
+        ratio = zeros(m,1);
+        for i = 1:m
+            if col(i) > 0
+                ratio(i) = sol(i) / col(i);
+            else
+                ratio(i) = inf;
+            end
+        end
+        
+        % Leaving variable
+        [~, lv] = min(ratio);
+        
+        % Update basic variables
+        bv(lv) = ev;
+        
+        % Pivot
+        pivot = A(lv, ev);
+        A(lv,:) = A(lv,:) / pivot;
+        
+        for i = 1:m
+            if i ~= lv
+                A(i,:) = A(i,:) - A(i,ev) * A(lv,:);
+            end
+        end
+        
+        % Update Zj - Cj
+        zjcj = cost(bv) * A - cost;
+        
     else
-        RUN = false;
-        fprintf('CURRENT BFS IS OPTIMAL\n');
+        run = false;
     end
-
 end
 
-%% FINAL OPTIMAL SOLUTION PRINT
-FINAL_BFS = zeros(1,size(A,2));
+% Final solution
+X = zeros(1, size(A,2));
+X(bv) = A(:,end);
 
-FINAL_BFS(BV) = A(:,end);
+optimal_value = sum(X .* cost);
 
-FINAL_BFS(end) = sum(FINAL_BFS.*Cost);
+disp("Final Simplex Table = ")
+table = [zjcj; A];
+FinalTable = array2table(table);
+FinalTable.Properties.VariableNames = {'x1','x2','x3','s1','s2','s3','Sol'};
+disp(FinalTable)
 
-OptimalBFS = array2table(FINAL_BFS);
-OptimalBFS.Properties.VariableNames(1:size(OptimalBFS,2)) = Variables;
+disp("Optimal Solution X = ")
+disp(X)
 
-disp('Final Optimal Solution:')
-disp(OptimalBFS) 
+disp("Optimal Value = ")
+disp(optimal_value)
